@@ -1,8 +1,8 @@
-use std::{time::{SystemTime, UNIX_EPOCH, Duration}};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use futures::{StreamExt, SinkExt, pin_mut, stream::{SplitSink}};
-use log::{info, error};
-use serde::{Serialize, Deserialize};
+use futures::{pin_mut, stream::SplitSink, SinkExt, StreamExt};
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
 use tokio_tungstenite::{connect_async, tungstenite::Message, WebSocketStream};
@@ -17,8 +17,6 @@ struct MessageContent {
 
 #[derive(Debug, Deserialize)]
 struct ChatMessage {
-    channel_name: String,
-    channel_user_count: usize,
     from: usize,
     msg: MessageContent,
 }
@@ -40,10 +38,17 @@ pub struct ServerOpts {
     pub path: String,
 }
 
-type SplitStreamWrite = SplitSink<WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>, Message>;
-type SplitStreamRead = futures::stream::SplitStream<WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>>;
+type SplitStreamWrite =
+    SplitSink<WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>, Message>;
+type SplitStreamRead = futures::stream::SplitStream<
+    WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+>;
 
-async fn connect(url: Url, offset: usize, chat_room: String) -> (usize, SplitStreamRead, SplitStreamWrite) {
+async fn connect(
+    url: Url,
+    offset: usize,
+    chat_room: String,
+) -> (usize, SplitStreamRead, SplitStreamWrite) {
     tokio::time::sleep(Duration::from_millis(offset as u64)).await;
 
     info!("connecting {}", url);
@@ -60,12 +65,17 @@ async fn connect(url: Url, offset: usize, chat_room: String) -> (usize, SplitStr
     while let Some(Ok(msg)) = read.next().await {
         let str = msg.into_text().expect("str");
         if str.starts_with("!join successful") {
-            id = str.split_once(": ").expect("': ' must exist").1.parse::<usize>().expect("to be number");
+            id = str
+                .split_once(": ")
+                .expect("': ' must exist")
+                .1
+                .parse::<usize>()
+                .expect("to be number");
             break;
         }
     }
 
-    return (id, read, write)
+    return (id, read, write);
 }
 
 async fn process_reader(id: usize, read: SplitStreamRead) {
@@ -73,18 +83,28 @@ async fn process_reader(id: usize, read: SplitStreamRead) {
         let str = message.unwrap().into_text().expect("str");
         let data: ChatMessage = serde_json::from_str(&str).expect("to always win");
         if data.from == id {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("come on").as_micros();
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("come on")
+                .as_micros();
             let diff = now - data.msg.ts as u128;
             println!("TIME,{}", diff);
         }
-    }).await
+    })
+    .await
 }
 
 async fn process_writers(mut writer_set: [Vec<SplitStreamWrite>; 41]) {
-    let mut then = SystemTime::now().duration_since(UNIX_EPOCH).expect("come on").as_micros();
+    let mut then = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("come on")
+        .as_micros();
     let mut idx = 0;
     loop {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("come on").as_micros();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("come on")
+            .as_micros();
         let diff = now - then;
         if diff < 100000 {
             tokio::time::sleep(Duration::from_millis(diff as u64)).await;
@@ -92,12 +112,16 @@ async fn process_writers(mut writer_set: [Vec<SplitStreamWrite>; 41]) {
             error!("EXCEEDING TIME!! FAILING")
         }
 
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("come on").as_micros();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("come on")
+            .as_micros();
         let msg = serde_json::to_string(&MessageContent {
             ts: now,
             msg: "Hello, World".to_string(),
-            inc: 68
-        }).expect("to work");
+            inc: 68,
+        })
+        .expect("to work");
 
         let mut awaits = vec![];
         for writer in writer_set[idx % 41].iter_mut() {
@@ -105,12 +129,13 @@ async fn process_writers(mut writer_set: [Vec<SplitStreamWrite>; 41]) {
             awaits.push(writer.send(msg));
         }
 
-        futures::future::join_all(awaits).await.iter().for_each(|x| {
-            match x {
+        futures::future::join_all(awaits)
+            .await
+            .iter()
+            .for_each(|x| match x {
                 Err(e) => panic!("Failed to write join {:?}", e),
                 _ => {}
-            }
-        });
+            });
 
         then = now;
         idx += 1;
@@ -121,29 +146,12 @@ async fn process_writers(mut writer_set: [Vec<SplitStreamWrite>; 41]) {
 async fn main() {
     env_logger::init();
     let opts = ServerOpts::from_args();
-    let url = url::Url::parse(format!("ws://{}:{}{}", opts.host, opts.port, opts.path).as_str()).unwrap();
+    let url =
+        url::Url::parse(format!("ws://{}:{}{}", opts.host, opts.port, opts.path).as_str()).unwrap();
 
     let chat: [&str; 20] = [
-        "foo0",
-        "foo1",
-        "foo2",
-        "foo3",
-        "foo4",
-        "foo5",
-        "foo6",
-        "foo7",
-        "foo8",
-        "foo9",
-        "foo10",
-        "foo11",
-        "foo12",
-        "foo13",
-        "foo14",
-        "foo15",
-        "foo16",
-        "foo17",
-        "foo18",
-        "foo19",
+        "foo0", "foo1", "foo2", "foo3", "foo4", "foo5", "foo6", "foo7", "foo8", "foo9", "foo10",
+        "foo11", "foo12", "foo13", "foo14", "foo15", "foo16", "foo17", "foo18", "foo19",
     ];
 
     // NOTE: wont let me do shorthand... [vec![]; 41]
@@ -198,16 +206,17 @@ async fn main() {
     }
 
     let mut awaits = vec![];
-    futures::future::join_all(connects).await.into_iter().enumerate().for_each(|(idx, (id, read, write))| {
-        awaits.push(process_reader(id, read));
-        writers[idx % 41].push(write);
-    });
+    futures::future::join_all(connects)
+        .await
+        .into_iter()
+        .enumerate()
+        .for_each(|(idx, (id, read, write))| {
+            awaits.push(process_reader(id, read));
+            writers[idx % 41].push(write);
+        });
 
     let future_people = process_writers(writers);
     let future_readers = futures::future::join_all(awaits);
     pin_mut!(future_people, future_readers);
-    futures::future::select(
-        future_people, future_readers
-    ).await;
+    futures::future::select(future_people, future_readers).await;
 }
-

@@ -1,14 +1,20 @@
-use std::{fmt::Display, collections::HashMap, sync::{Arc}};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
-use futures::{stream::{SplitStream, SplitSink}, StreamExt, SinkExt};
+use futures::{
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 
 use log::error;
-use tokio::{sync::{mpsc::{Sender}, Mutex}, net::TcpStream};
-use tokio_tungstenite::{WebSocketStream, tungstenite};
+use tokio::{
+    net::TcpStream,
+    sync::{mpsc::Sender, Mutex},
+};
+use tokio_tungstenite::{tungstenite, WebSocketStream};
 
 use crate::error::BoomerError;
 
-use super::message::{Message};
+use super::message::Message;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -25,7 +31,7 @@ type MessageStream = SplitStream<WSStream>;
 pub struct Socket {
     current_id: u16,
     listeners: Listener,
-    outgoing: SplitSink<WebSocketStream<TcpStream>, tungstenite::Message>
+    outgoing: SplitSink<WebSocketStream<TcpStream>, tungstenite::Message>,
 }
 
 pub async fn handle_messages(mut incoming: MessageStream, listeners: Listener) {
@@ -41,7 +47,10 @@ pub async fn handle_messages(mut incoming: MessageStream, listeners: Listener) {
             if let Ok(msg) = msg {
                 let listener = listeners.lock().await;
                 for (_k, tx) in listener.iter() {
-                    tx.send(msg.clone()).await;
+                    match tx.send(msg.clone()).await {
+                        Ok(_) => (),
+                        Err(_) => todo!(),
+                    }
                 }
             } else {
                 error!("unable to deserialize message from socket")
@@ -80,7 +89,7 @@ impl Socket {
 
 #[async_trait]
 impl Listenable for Socket {
-    async fn listen(& mut self, tx: Tx) -> u16 {
+    async fn listen(&mut self, tx: Tx) -> u16 {
         let id = self.current_id;
         self.current_id += 1;
         self.listeners.lock().await.insert(id, tx);
@@ -98,4 +107,3 @@ impl Display for Socket {
         write!(f, "Socket here!")
     }
 }
-

@@ -1,0 +1,23 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Rust Server",
+            "type": "shell",
+            "command": "cargo",
+            "args": ["build", "--release"],
+            "options": { "cwd": "${workspaceFolder}/rust" },
+            "group": "build"
+        },
+        {
+            "label": "Build Rust Player",
+            "type": "shell",
+            "command": "cargo",
+            "args": ["build", "--release", "--bin", "game_player"],
+            "options": { "cwd": "${workspaceFolder}/rust" },
+            "group": "build"
+        }
+    ]
+}

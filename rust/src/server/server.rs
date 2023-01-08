@@ -1,20 +1,7 @@
-
-
-use futures::{SinkExt};
-use futures_util::{StreamExt};
-
 use log::info;
-use tokio::{
-    net::{TcpListener, TcpStream},
-    sync::mpsc::{channel, Receiver},
-    task::JoinHandle,
-};
+use tokio::net::{TcpListener, TcpStream};
 
-use super::{
-    socket::Socket,
-};
-
-type Rx = Receiver<(Socket, Socket)>;
+use super::socket::Socket;
 
 pub async fn handle_connection(raw_stream: TcpStream) -> Socket {
     info!("Incoming TCP connection from");
@@ -31,7 +18,7 @@ pub async fn handle_connection(raw_stream: TcpStream) -> Socket {
 }
 
 pub struct Server {
-    pub listener: TcpListener
+    pub listener: TcpListener,
 }
 
 impl Server {
@@ -44,9 +31,6 @@ impl Server {
 
         info!("Listening on: {}", addr);
 
-        Ok(Server {
-            listener
-        })
+        Ok(Server { listener })
     }
 }
-

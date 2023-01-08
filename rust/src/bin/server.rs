@@ -1,10 +1,12 @@
-#![feature(vec_retain_mut)]
-
 use std::sync::Arc;
 
 use log::warn;
 use rust::{
-    server::server::{Server, handle_connection}, game::{play_the_game, ActiveGames},
+    game::{play_the_game, ActiveGames},
+    server::{
+        server::{handle_connection, Server},
+        socket::Socket,
+    },
 };
 use tokio::sync::Mutex;
 

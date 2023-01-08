@@ -1,22 +1,32 @@
-use std::{time::{UNIX_EPOCH, SystemTime, Duration}, sync::Arc};
+use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use crate::{error::BoomerError, server::{socket::Socket, message::{MessageType, Message}}};
+use crate::{
+    error::BoomerError,
+    server::{
+        message::{Message, MessageType},
+        socket::Socket,
+    },
+};
 
-use self::{player::{Player, create_bullet_for_player}, game_queue::{GameQueue, MessageEnvelope}, bullet::Bullet, geometry::{AABB, Updatable}, game::{Game, PlayerIdx}, stats::GameStats};
+use self::{
+    game::{Game, PlayerIdx},
+    stats::GameStats,
+};
 
-pub mod stats;
-pub mod test_utils;
 pub mod bullet;
 pub mod game;
-pub mod game_setup;
-pub mod player;
-pub mod geometry;
 pub mod game_queue;
+pub mod game_setup;
+pub mod geometry;
+pub mod player;
+pub mod stats;
+pub mod test_utils;
 
-async fn ready_players((mut s1, mut s2): (Socket, Socket)) -> Result<(Socket, Socket), BoomerError> {
-
+async fn ready_players(
+    (mut s1, mut s2): (Socket, Socket),
+) -> Result<(Socket, Socket), BoomerError> {
     // We need to create the players and send off the fire command.
     s1.push(Message::new(MessageType::Play)).await?;
     s2.push(Message::new(MessageType::Play)).await?;
@@ -24,7 +34,9 @@ async fn ready_players((mut s1, mut s2): (Socket, Socket)) -> Result<(Socket, So
     return Ok((s1, s2));
 }
 
-async fn run_game_loop(mut sockets: (Socket, Socket)) -> Result<(Socket, Socket, GameStats), BoomerError> {
+async fn run_game_loop(
+    mut sockets: (Socket, Socket),
+) -> Result<(Socket, Socket, GameStats), BoomerError> {
     sockets = ready_players(sockets).await?;
 
     let mut game = Game::new(&mut sockets).await;
@@ -40,14 +52,12 @@ async fn run_game_loop(mut sockets: (Socket, Socket)) -> Result<(Socket, Socket,
 }
 
 pub struct ActiveGames {
-    active_games: usize
+    active_games: usize,
 }
 
 impl ActiveGames {
     pub fn new() -> ActiveGames {
-        return ActiveGames {
-            active_games: 0,
-        };
+        return ActiveGames { active_games: 0 };
     }
     pub fn add_active_game(&mut self) {
         self.active_games += 1;
@@ -58,11 +68,13 @@ impl ActiveGames {
     }
 }
 
-pub async fn play_the_game((s1, s2): (Socket, Socket), active_games: Arc<Mutex<ActiveGames>>) -> Result<(), BoomerError> {
-
+pub async fn play_the_game(
+    (s1, s2): (Socket, Socket),
+    active_games: Arc<Mutex<ActiveGames>>,
+) -> Result<(), BoomerError> {
     let sockets = match game_setup::wait_for_ready(s1, s2).await {
         Ok(s) => s,
-        Err(_) => return Ok(())
+        Err(_) => return Ok(()),
     };
 
     active_games.lock().await.add_active_game();
@@ -73,7 +85,7 @@ pub async fn play_the_game((s1, s2): (Socket, Socket), active_games: Arc<Mutex<A
             println!("Error while running game_loop {:?}", e);
             active_games.lock().await.remove_active_game();
             return Ok(());
-        },
+        }
     };
 
     // Now we must play the game...
@@ -85,19 +97,24 @@ pub async fn play_the_game((s1, s2): (Socket, Socket), active_games: Arc<Mutex<A
     let output_str: String;
     {
         let mut active_games = active_games.lock().await;
-        output_str = format!("winner({})___{}", active_games.active_games, <GameStats as Into<std::string::String>>::into(stats));
+        output_str = format!(
+            "winner({})___{}",
+            active_games.active_games,
+            <GameStats as Into<std::string::String>>::into(stats)
+        );
         active_games.remove_active_game();
     }
 
     let (r1, r2) = futures::future::join(
-        loser.push(Message::with_message(MessageType::GameOver, "loser".to_string())),
+        loser.push(Message::with_message(
+            MessageType::GameOver,
+            "loser".to_string(),
+        )),
         winner.push(Message::with_message(MessageType::GameOver, output_str)),
-    ).await;
+    )
+    .await;
 
-    let (r3, r4) = futures::future::join(
-        loser.close(),
-        winner.close(),
-    ).await;
+    let (r3, r4) = futures::future::join(loser.close(), winner.close()).await;
 
     r1?;
     r2?;
@@ -106,4 +123,3 @@ pub async fn play_the_game((s1, s2): (Socket, Socket), active_games: Arc<Mutex<A
 
     return Ok(());
 }
-

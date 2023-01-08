@@ -1,7 +1,9 @@
+use crate::server::{
+    message::{GameMessage, Message},
+    socket::Listenable,
+};
 use std::sync::Arc;
 use tokio::sync::{mpsc::channel, Mutex};
-use crate::server::{message::{Message, GameMessage}, socket::Listenable};
-use async_trait::async_trait;
 
 type Rx = tokio::sync::mpsc::Receiver<Message>;
 type MessageQueue = Arc<Mutex<Vec<MessageEnvelope>>>;
@@ -9,7 +11,7 @@ type MessageQueue = Arc<Mutex<Vec<MessageEnvelope>>>;
 #[derive(Debug, PartialEq)]
 pub struct MessageEnvelope {
     pub from: usize,
-    pub msg: GameMessage
+    pub msg: GameMessage,
 }
 
 pub struct GameQueue {
@@ -52,7 +54,10 @@ async fn handle_socket_messages(mut rx1: Rx, mut rx2: Rx, queue: MessageQueue) {
 }
 
 impl GameQueue {
-    pub async fn new<T>(s1: &mut T, s2: &mut T) -> GameQueue where T: Listenable {
+    pub async fn new<T>(s1: &mut T, s2: &mut T) -> GameQueue
+    where
+        T: Listenable,
+    {
         let (tx1, rx1) = channel::<Message>(2);
         let (tx2, rx2) = channel::<Message>(2);
         let messages = Arc::new(Mutex::new(Vec::new()));
@@ -63,11 +68,7 @@ impl GameQueue {
         // TODO: How to get around this..?
         tokio::spawn(handle_socket_messages(rx1, rx2, messages.clone()));
 
-        return GameQueue{
-            messages,
-            id1,
-            id2,
-        };
+        return GameQueue { messages, id1, id2 };
     }
 
     pub async fn flush(&mut self) -> Option<MessageQueue> {
@@ -101,8 +102,8 @@ impl GameQueue {
 
 #[cfg(test)]
 mod test {
-    use crate::{error::BoomerError, server::message::MessageType, game::test_utils::Socket};
     use super::*;
+    use crate::{error::BoomerError, game::test_utils::Socket, server::message::MessageType};
 
     #[tokio::test]
     async fn test_flush() -> Result<(), BoomerError> {
@@ -120,20 +121,26 @@ mod test {
             .await
             .get(0)
             .expect("there should be the queue as a listener")
-            .send(Message::Message(GameMessage{
-                r#type: MessageType::GameOver, msg: None
-            })).await?;
+            .send(Message::Message(GameMessage {
+                r#type: MessageType::GameOver,
+                msg: None,
+            }))
+            .await?;
 
         tokio::time::sleep(std::time::Duration::from_millis(1)).await;
         let result = queue.flush().await;
         if let Some(result) = result {
             assert_eq!(result.lock().await.len(), 1);
-            assert_eq!(result.lock().await.get(0).unwrap(), &MessageEnvelope {
-                from: 1,
-                msg: GameMessage {
-                    r#type: MessageType::GameOver, msg: None
+            assert_eq!(
+                result.lock().await.get(0).unwrap(),
+                &MessageEnvelope {
+                    from: 1,
+                    msg: GameMessage {
+                        r#type: MessageType::GameOver,
+                        msg: None
+                    }
                 }
-            });
+            );
         } else {
             assert_eq!(false, true);
         }
@@ -146,20 +153,26 @@ mod test {
             .await
             .get(0)
             .expect("there should be the queue as a listener")
-            .send(Message::Message(GameMessage{
-                r#type: MessageType::GameOver, msg: None
-            })).await?;
+            .send(Message::Message(GameMessage {
+                r#type: MessageType::GameOver,
+                msg: None,
+            }))
+            .await?;
 
         tokio::time::sleep(std::time::Duration::from_millis(1)).await;
         let result = queue.flush().await;
         if let Some(result) = result {
             assert_eq!(result.lock().await.len(), 1);
-            assert_eq!(result.lock().await.get(0).unwrap(), &MessageEnvelope {
-                from: 1,
-                msg: GameMessage {
-                    r#type: MessageType::GameOver, msg: None
+            assert_eq!(
+                result.lock().await.get(0).unwrap(),
+                &MessageEnvelope {
+                    from: 1,
+                    msg: GameMessage {
+                        r#type: MessageType::GameOver,
+                        msg: None
+                    }
                 }
-            });
+            );
         } else {
             assert_eq!(false, true);
         }
@@ -170,6 +183,3 @@ mod test {
         return Ok(());
     }
 }
-
-
-
