@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
+    ops::DerefMut,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -118,7 +119,7 @@ async fn fire_loop(callees: AMVWrite) -> Result<(), BoomerError> {
             let sleep_time = TIME_BETWEEN_LOOPS.saturating_sub(diff as u64);
             tokio::time::sleep(Duration::from_micros(sleep_time)).await;
         } else {
-            println!("unable to send messages within {} us", TIME_BETWEEN_LOOPS);
+            // println!("unable to send messages within {} us", TIME_BETWEEN_LOOPS);
         }
 
         let now = SystemTime::now()
@@ -126,17 +127,30 @@ async fn fire_loop(callees: AMVWrite) -> Result<(), BoomerError> {
             .expect("come on")
             .as_micros();
 
-        let callees = &mut callees.lock().await[idx];
+        // let callees = &mut callees.lock().await[idx];
+        let writers_mutex = &mut callees.lock().await;
+        let writers_maps = writers_mutex.deref_mut();
 
-        // todo: this may not be fast enough.  We may have to spawn several of these.
-        for writer in callees.iter_mut() {
-            match writer.1.writer.send(msg.clone()).await {
-                Err(e) => {
-                    println!("error during fire_loop: {:?}", e);
+        for callees in writers_maps {
+            for writer in callees.iter_mut() {
+                match writer.1.writer.send(msg.clone()).await {
+                    Err(e) => {
+                        println!("error during fire_loop: {:?}", e);
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
+
+        // todo: this may not be fast enough.  We may have to spawn several of these.
+        // for writer in callees.iter_mut() {
+        //     match writer.1.writer.send(msg.clone()).await {
+        //         Err(e) => {
+        //             println!("error during fire_loop: {:?}", e);
+        //         }
+        //         _ => {}
+        //     }
+        // }
 
         then = now;
         idx = (idx + 1) % WRITE_COUNT;

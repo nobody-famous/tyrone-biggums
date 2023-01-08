@@ -19,6 +19,19 @@
             "group": "build"
         },
         {
+            "label": "Run Go Server",
+            "dependsOn": "Build Go Server",
+            "type": "shell",
+            "command": "./bin/server",
+            "options": {
+                "cwd": "${workspaceFolder}/go"
+            },
+            "presentation": {
+                "group": "rust"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Build Rust Server",
             "type": "shell",
             "command": "cargo",
@@ -86,14 +99,14 @@
             "type": "shell",
             "command": "target/release/game_player",
             "args": [
-                "2",
+                "100",
                 "--host",
                 "localhost"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/rust",
                 "env": {
-                    "CONNECTION_COUNT": "2"
+                    "CONNECTION_COUNT": "100"
                 }
             },
             "presentation": {
