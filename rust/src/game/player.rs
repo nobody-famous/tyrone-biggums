@@ -1,13 +1,17 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::{bullet::{Bullet, BULLET_SPEED, BULLET_WIDTH}, geometry::AABB};
+use super::{
+    bullet::{Bullet, BULLET_SPEED, BULLET_WIDTH},
+    geometry::AABB,
+};
 
+#[derive(Debug)]
 pub struct Player {
     last_fired: u128,
     fire_rate: u128,
     dir_x: f64,
     dir_y: f64,
-    pub aabb: AABB
+    pub aabb: AABB,
 }
 
 pub const PLAYER_WIDTH: f64 = 100.0;
@@ -29,7 +33,7 @@ impl Player {
             dir_x,
 
             dir_y: 0.0,
-        }
+        };
     }
 
     pub fn new(fire_rate: u128, aabb: AABB, dir_x: f64) -> Player {
@@ -40,14 +44,16 @@ impl Player {
             dir_x,
 
             dir_y: 0.0,
-        }
+        };
     }
 
     pub fn fire(&mut self) -> bool {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("come on").as_micros();
+            .expect("come on")
+            .as_micros();
 
+        println!("FIRE? {} {} {}", now, self.last_fired, now - self.last_fired);
         if now - self.last_fired > self.fire_rate {
             self.last_fired = now;
             return true;
@@ -60,15 +66,15 @@ impl Player {
 pub fn create_bullet_for_player(player: &Player) -> Bullet {
     let mut bullet: Bullet = if player.dir_x == 1.0 {
         let mut bullet = Bullet::from_aabb(player.aabb.clone());
-        bullet.aabb.set_position(
-            player.aabb.x + player.aabb.width + 1.0,
-            0.0);
+        bullet
+            .aabb
+            .set_position(player.aabb.x + player.aabb.width + 1.0, 0.0);
         bullet
     } else {
         let mut bullet = Bullet::from_aabb(player.aabb.clone());
-        bullet.aabb.set_position(
-            player.aabb.x - super::bullet::BULLET_WIDTH - 1.0,
-            0.0);
+        bullet
+            .aabb
+            .set_position(player.aabb.x - super::bullet::BULLET_WIDTH - 1.0, 0.0);
         bullet
     };
 
@@ -82,7 +88,11 @@ pub fn create_bullet_for_player(player: &Player) -> Bullet {
 
 #[cfg(test)]
 mod test {
-    use crate::game::{geometry::AABB, player::{Player, create_bullet_for_player}, bullet::{BULLET_SPEED, BULLET_WIDTH}};
+    use crate::game::{
+        bullet::{BULLET_SPEED, BULLET_WIDTH},
+        geometry::AABB,
+        player::{create_bullet_for_player, Player},
+    };
 
     #[test]
     fn test_bullet_create() {
@@ -107,5 +117,4 @@ mod test {
         let player = Player::real_game_player(69, 1.0);
         assert_eq!(player.aabb.x, -2500.0);
     }
-
 }

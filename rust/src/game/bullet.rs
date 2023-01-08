@@ -1,6 +1,6 @@
-use super::geometry::{AABB, Updatable};
+use super::geometry::{Updatable, AABB};
 
- //where is my aabb?
+//where is my aabb?
 #[derive(Debug)]
 pub struct Bullet {
     pub aabb: AABB,
@@ -18,7 +18,7 @@ impl Bullet {
             aabb,
             vel_x: 0.0,
             vel_y: 0.0,
-        }
+        };
     }
 
     pub fn new(x: f64, y: f64, vel_x: f64, vel_y: f64) -> Bullet {
@@ -26,7 +26,7 @@ impl Bullet {
             aabb: AABB::new(x, y, BULLET_WIDTH, BULLET_HEIGHT),
             vel_x,
             vel_y,
-        }
+        };
     }
 }
 

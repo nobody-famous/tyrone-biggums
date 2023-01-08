@@ -7,7 +7,12 @@
             "label": "Build Go Server",
             "type": "shell",
             "command": "go",
-            "args": ["build", "-o", "bin/server", "cmd/server/main.go"],
+            "args": [
+                "build",
+                "-o",
+                "bin/server",
+                "cmd/server/main.go"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/go"
             },
@@ -17,7 +22,12 @@
             "label": "Build Rust Server",
             "type": "shell",
             "command": "cargo",
-            "args": ["build", "--release", "--bin", "server"],
+            "args": [
+                "build",
+                "--release",
+                "--bin",
+                "server"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/rust"
             },
@@ -37,14 +47,54 @@
             "problemMatcher": []
         },
         {
+            "label": "Run Node Server",
+            "dependsOn": "Build Node Server",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "dist/index.js",
+                "callback",
+                "foo",
+                "42069"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/typescript"
+            },
+            "presentation": {
+                "group": "rust"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Node Server",
+            "type": "shell",
+            "command": "npx",
+            "args": [
+                "tsc",
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/typescript"
+            },
+            "presentation": {
+                "group": "rust"
+            },
+            "group": "build",
+        },
+        {
             "label": "Run Rust Player",
             "dependsOn": "Build Rust Player",
             "type": "shell",
             "command": "target/release/game_player",
-            "args": ["1"],
+            "args": [
+                "2",
+                "--host",
+                "localhost"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/rust",
-                "env": { "CONNECTION_COUNT": "2" }
+                "env": {
+                    "CONNECTION_COUNT": "2"
+                }
             },
             "presentation": {
                 "group": "rust"
@@ -55,7 +105,12 @@
             "label": "Build Rust Player",
             "type": "shell",
             "command": "cargo",
-            "args": ["build", "--release", "--bin", "game_player"],
+            "args": [
+                "build",
+                "--release",
+                "--bin",
+                "game_player"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/rust"
             },
