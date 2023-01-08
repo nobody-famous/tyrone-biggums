@@ -126,7 +126,7 @@ async fn fire_loop(callees: AMVWrite) -> Result<(), BoomerError> {
             .expect("come on")
             .as_micros();
 
-        let callees = &mut callees.lock().await[idx % WRITE_COUNT];
+        let callees = &mut callees.lock().await[idx];
 
         // todo: this may not be fast enough.  We may have to spawn several of these.
         for writer in callees.iter_mut() {
@@ -139,7 +139,7 @@ async fn fire_loop(callees: AMVWrite) -> Result<(), BoomerError> {
         }
 
         then = now;
-        idx += 1;
+        idx = (idx + 1) % WRITE_COUNT;
     }
 }
 

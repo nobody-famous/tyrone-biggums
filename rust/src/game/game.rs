@@ -66,7 +66,6 @@ impl Game {
             for msg in msgs.lock().await.iter() {
                 let player = &mut self.players[msg.from - 1];
                 if player.fire() {
-                    println!("FIRE {:?}", player);
                     self.current_bullets.push(create_bullet_for_player(player));
                 }
             }

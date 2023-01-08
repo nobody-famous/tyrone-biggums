@@ -53,7 +53,14 @@ impl Player {
             .expect("come on")
             .as_micros();
 
-        println!("FIRE? {} {} {}", now, self.last_fired, now - self.last_fired);
+        if self.fire_rate == 350_000 {
+            println!(
+                "FIRE? {} {} {}",
+                now,
+                self.last_fired,
+                now - self.last_fired
+            );
+        }
         if now - self.last_fired > self.fire_rate {
             self.last_fired = now;
             return true;
