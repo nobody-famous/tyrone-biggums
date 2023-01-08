@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use log::warn;
 use rust::{
     game::{play_the_game, ActiveGames},
     server::{
@@ -16,7 +15,7 @@ async fn main() -> Result<(), std::io::Error> {
     // console_subscriber::init();
 
     let mut server = Server::new().await?;
-    warn!("starting server");
+    println!("starting server");
 
     let active_games = Arc::new(Mutex::new(ActiveGames::new()));
     let mut other_socket: Option<Socket> = None;

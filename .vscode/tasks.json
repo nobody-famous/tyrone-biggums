@@ -4,19 +4,61 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Build Go Server",
+            "type": "shell",
+            "command": "go",
+            "args": ["build", "-o", "bin/server", "cmd/server/main.go"],
+            "options": {
+                "cwd": "${workspaceFolder}/go"
+            },
+            "group": "build"
+        },
+        {
             "label": "Build Rust Server",
             "type": "shell",
             "command": "cargo",
-            "args": ["build", "--release"],
-            "options": { "cwd": "${workspaceFolder}/rust" },
+            "args": ["build", "--release", "--bin", "server"],
+            "options": {
+                "cwd": "${workspaceFolder}/rust"
+            },
             "group": "build"
+        },
+        {
+            "label": "Run Rust Server",
+            "dependsOn": "Build Rust Server",
+            "type": "shell",
+            "command": "target/release/server",
+            "options": {
+                "cwd": "${workspaceFolder}/rust"
+            },
+            "presentation": {
+                "group": "rust"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Rust Player",
+            "dependsOn": "Build Rust Player",
+            "type": "shell",
+            "command": "target/release/game_player",
+            "args": ["1"],
+            "options": {
+                "cwd": "${workspaceFolder}/rust",
+                "env": { "CONNECTION_COUNT": "2" }
+            },
+            "presentation": {
+                "group": "rust"
+            },
+            "problemMatcher": []
         },
         {
             "label": "Build Rust Player",
             "type": "shell",
             "command": "cargo",
             "args": ["build", "--release", "--bin", "game_player"],
-            "options": { "cwd": "${workspaceFolder}/rust" },
+            "options": {
+                "cwd": "${workspaceFolder}/rust"
+            },
             "group": "build"
         }
     ]

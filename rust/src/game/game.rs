@@ -1,8 +1,14 @@
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::error::BoomerError;
 
-use super::{player::{Player, create_bullet_for_player}, bullet::Bullet, geometry::Updatable, game_queue::GameQueue, stats::GameStats};
+use super::{
+    bullet::Bullet,
+    game_queue::GameQueue,
+    geometry::Updatable,
+    player::{create_bullet_for_player, Player},
+    stats::GameStats,
+};
 
 use crate::server::socket::Listenable;
 
@@ -18,7 +24,7 @@ impl TryInto<usize> for PlayerIdx {
         return match self {
             PlayerIdx::One => Ok(0),
             PlayerIdx::Two => Ok(1),
-        }
+        };
     }
 }
 
@@ -32,7 +38,10 @@ pub struct Game {
 }
 
 impl Game {
-    pub async fn new<T>(sockets: &mut (T, T)) -> Game where T: Listenable {
+    pub async fn new<T>(sockets: &mut (T, T)) -> Game
+    where
+        T: Listenable,
+    {
         // create the players.
         let players: [Player; 2] = [
             Player::real_game_player(180_000, -1.0),
@@ -47,7 +56,7 @@ impl Game {
             game_ended: false,
             queue,
             loser: None,
-        }
+        };
     }
 
     async fn empty_message_queue(&mut self) {
@@ -57,9 +66,7 @@ impl Game {
             for msg in msgs.lock().await.iter() {
                 let player = &mut self.players[msg.from - 1];
                 if player.fire() {
-                    self.current_bullets.push(
-                        create_bullet_for_player(player)
-                    );
+                    self.current_bullets.push(create_bullet_for_player(player));
                 }
             }
         }
@@ -79,10 +86,16 @@ impl Game {
         let mut i = (self.current_bullets.len() - 1) as isize;
         'outer_loop: while i >= 0 {
             let mut j = (i - 1) as isize;
-            let a = self.current_bullets.get(i as usize).expect("this should always exist");
+            let a = self
+                .current_bullets
+                .get(i as usize)
+                .expect("this should always exist");
 
             while j >= 0 {
-                let b = self.current_bullets.get(j as usize).expect("this should always exist");
+                let b = self
+                    .current_bullets
+                    .get(j as usize)
+                    .expect("this should always exist");
                 if a.aabb.has_collision(&b.aabb) {
                     self.current_bullets.remove(i as usize);
                     self.current_bullets.remove(j as usize);
@@ -113,8 +126,10 @@ impl Game {
     }
 
     pub async fn run_loop(&mut self) -> Result<GameStats, BoomerError> {
-
-        let mut last_loop = SystemTime::now().duration_since(UNIX_EPOCH).expect("come on").as_micros();
+        let mut last_loop = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("come on")
+            .as_micros();
         let mut stats = GameStats::new();
         let mut interval = tokio::time::interval(Duration::from_millis(16));
 
@@ -123,7 +138,10 @@ impl Game {
             //
             interval.tick().await; // first tick is 0ms
 
-            let start = SystemTime::now().duration_since(UNIX_EPOCH).expect("come on").as_micros();
+            let start = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("come on")
+                .as_micros();
             let diff = start - last_loop;
             stats.add_delta(diff);
 
@@ -161,7 +179,14 @@ mod test {
 
     use tokio::sync::Mutex;
 
-    use crate::{game::{test_utils::{Socket, TxList}, bullet::BULLET_WIDTH, player::{PLAYER_STARTING_X, PLAYER_WIDTH}}, server::message::Message};
+    use crate::{
+        game::{
+            bullet::BULLET_WIDTH,
+            player::{PLAYER_STARTING_X, PLAYER_WIDTH},
+            test_utils::{Socket, TxList},
+        },
+        server::message::Message,
+    };
 
     use super::*;
 
@@ -171,7 +196,9 @@ mod test {
 
     async fn fire(listener: TxList) -> Result<(), BoomerError> {
         for listener in listener.lock().await.iter() {
-            listener.send(Message::new(crate::server::message::MessageType::Fire)).await?;
+            listener
+                .send(Message::new(crate::server::message::MessageType::Fire))
+                .await?;
         }
 
         return Ok(());
@@ -182,11 +209,8 @@ mod test {
 
     #[tokio::test]
     async fn test_bullet_generation() -> Result<(), BoomerError> {
-
         let mut sockets = (Socket::new(), Socket::new());
-        let listeners = (
-            sockets.0.listeners.clone(), sockets.1.listeners.clone()
-        );
+        let listeners = (sockets.0.listeners.clone(), sockets.1.listeners.clone());
 
         let mut game = Game::new(&mut sockets).await;
 
@@ -195,27 +219,28 @@ mod test {
         game.empty_message_queue().await;
 
         assert_eq!(game.current_bullets.len(), 1);
-        assert_eq!(game.current_bullets.get(0).expect("exists").aabb.x,
-            BULLET_STARTING_POS_0);
+        assert_eq!(
+            game.current_bullets.get(0).expect("exists").aabb.x,
+            BULLET_STARTING_POS_0
+        );
 
         fire(listeners.1).await?;
         wait_for_message_queue_to_empty().await;
         game.empty_message_queue().await;
 
         assert_eq!(game.current_bullets.len(), 2);
-        assert_eq!(game.current_bullets.get(1).expect("exists").aabb.x,
-            BULLET_STARTING_POS_1);
+        assert_eq!(
+            game.current_bullets.get(1).expect("exists").aabb.x,
+            BULLET_STARTING_POS_1
+        );
 
         return Ok(());
-
     }
 
     #[tokio::test]
     async fn test_collisions() -> Result<(), BoomerError> {
         let mut sockets = (Socket::new(), Socket::new());
-        let listeners = (
-            sockets.0.listeners.clone(), sockets.1.listeners.clone()
-        );
+        let listeners = (sockets.0.listeners.clone(), sockets.1.listeners.clone());
 
         let mut game = Game::new(&mut sockets).await;
         fire(listeners.0).await?;
@@ -239,9 +264,7 @@ mod test {
     #[tokio::test]
     async fn test_for_player_collisions() -> Result<(), BoomerError> {
         let mut sockets = (Socket::new(), Socket::new());
-        let listeners = (
-            sockets.0.listeners.clone(), sockets.1.listeners.clone()
-        );
+        let listeners = (sockets.0.listeners.clone(), sockets.1.listeners.clone());
 
         let mut game = Game::new(&mut sockets).await;
         fire(listeners.0).await?;
@@ -293,8 +316,8 @@ mod test {
         match game.run_loop().await {
             Err(e) => {
                 println!("Game failed for this reason {:?}", e);
-                unreachable!(e);
-            },
+                unreachable!("{}", e);
+            }
             _ => {}
         }
         kill.lock().await.push(0);
@@ -305,4 +328,3 @@ mod test {
         return Ok(());
     }
 }
-
