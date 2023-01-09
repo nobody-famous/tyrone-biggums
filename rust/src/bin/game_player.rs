@@ -127,30 +127,29 @@ async fn fire_loop(callees: AMVWrite) -> Result<(), BoomerError> {
             .expect("come on")
             .as_micros();
 
-        // let callees = &mut callees.lock().await[idx];
-        let writers_mutex = &mut callees.lock().await;
-        let writers_maps = writers_mutex.deref_mut();
+        // let writers_mutex = &mut callees.lock().await;
+        // let writers_maps = writers_mutex.deref_mut();
 
-        for callees in writers_maps {
-            for writer in callees.iter_mut() {
-                match writer.1.writer.send(msg.clone()).await {
-                    Err(e) => {
-                        println!("error during fire_loop: {:?}", e);
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        // todo: this may not be fast enough.  We may have to spawn several of these.
-        // for writer in callees.iter_mut() {
-        //     match writer.1.writer.send(msg.clone()).await {
-        //         Err(e) => {
-        //             println!("error during fire_loop: {:?}", e);
+        // for callees in writers_maps {
+        //     for writer in callees.iter_mut() {
+        //         match writer.1.writer.send(msg.clone()).await {
+        //             Err(e) => {
+        //                 println!("error during fire_loop: {:?}", e);
+        //             }
+        //             _ => {}
         //         }
-        //         _ => {}
         //     }
         // }
+
+        let callees = &mut callees.lock().await[idx];
+        for writer in callees.iter_mut() {
+            match writer.1.writer.send(msg.clone()).await {
+                Err(e) => {
+                    println!("error during fire_loop: {:?}", e);
+                }
+                _ => {}
+            }
+        }
 
         then = now;
         idx = (idx + 1) % WRITE_COUNT;
