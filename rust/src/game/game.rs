@@ -44,10 +44,8 @@ impl Game {
     {
         // create the players.
         let players: [Player; 2] = [
-            Player::real_game_player(540_000, -1.0),
-            Player::real_game_player(900_000, 1.0),
-            // Player::real_game_player(180_000, -1.0),
-            // Player::real_game_player(350_000, 1.0),
+            Player::real_game_player(180_000, -1.0),
+            Player::real_game_player(350_000, 1.0),
         ];
 
         let queue = GameQueue::new(&mut sockets.0, &mut sockets.1).await;

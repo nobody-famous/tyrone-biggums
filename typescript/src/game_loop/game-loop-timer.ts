@@ -56,12 +56,12 @@ export default class GameLoopTimerImpl implements GameLoopTimer, StoppableTimer 
         if (Date.now() > this.targetTime) {
             const currentTime = Date.now();
             const diff = currentTime - this.lastRunTime;
+            this.targetTime = Date.now() + 16;
 
             this.cb(diff);
 
             // const opDiff = Date.now() - currentTime;
             this.lastRunTime = currentTime;
-            this.targetTime = Date.now() + 16;
         }
 
         setImmediate(this.run);

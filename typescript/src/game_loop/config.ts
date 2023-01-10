@@ -3,10 +3,8 @@ const BULLET_SPEED = 1;
 let defaultConfig = {
     playerStartingX: PLAYER_STARTING_X,
     bulletSpeed: BULLET_SPEED,
-    loserFireRate: 900,
-    winnerFireRate: 540,
-    // loserFireRate: 300,
-    // winnerFireRate: 180,
+    loserFireRate: 300,
+    winnerFireRate: 180,
 }
 
 export function setConfig(config: PartialConfig) {

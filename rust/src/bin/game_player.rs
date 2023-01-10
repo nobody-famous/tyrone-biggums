@@ -96,6 +96,18 @@ impl Hash for HashableWriter {
     }
 }
 
+#[derive(Debug)]
+struct WinnerStats {
+    ok: usize,
+    xvii: usize,
+    xx: usize,
+    xxii: usize,
+    xxiii: usize,
+    xxv: usize,
+    xxx: usize,
+    xl: usize,
+}
+
 type WriteArray = [HashMap<usize, HashableWriter>; WRITE_COUNT];
 type AMVWrite = Arc<Mutex<WriteArray>>;
 
@@ -127,29 +139,29 @@ async fn fire_loop(callees: AMVWrite) -> Result<(), BoomerError> {
             .expect("come on")
             .as_micros();
 
-        // let writers_mutex = &mut callees.lock().await;
-        // let writers_maps = writers_mutex.deref_mut();
+        let writers_mutex = &mut callees.lock().await;
+        let writers_maps = writers_mutex.deref_mut();
 
-        // for callees in writers_maps {
-        //     for writer in callees.iter_mut() {
-        //         match writer.1.writer.send(msg.clone()).await {
-        //             Err(e) => {
-        //                 println!("error during fire_loop: {:?}", e);
-        //             }
-        //             _ => {}
-        //         }
-        //     }
-        // }
-
-        let callees = &mut callees.lock().await[idx];
-        for writer in callees.iter_mut() {
-            match writer.1.writer.send(msg.clone()).await {
-                Err(e) => {
-                    println!("error during fire_loop: {:?}", e);
+        for callees in writers_maps {
+            for writer in callees.iter_mut() {
+                match writer.1.writer.send(msg.clone()).await {
+                    Err(e) => {
+                        println!("error during fire_loop: {:?}", e);
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
+
+        // let callees = &mut callees.lock().await[idx];
+        // for writer in callees.iter_mut() {
+        //     match writer.1.writer.send(msg.clone()).await {
+        //         Err(e) => {
+        //             println!("error during fire_loop: {:?}", e);
+        //         }
+        //         _ => {}
+        //     }
+        // }
 
         then = now;
         idx = (idx + 1) % WRITE_COUNT;
@@ -196,10 +208,20 @@ async fn play(
     writers: AMVWrite,
     config: Arc<Mutex<ServerConfig>>,
     offset: usize,
-) -> Result<(), BoomerError> {
+) -> Result<WinnerStats, BoomerError> {
     // helps prevent 500 connections at once then for games to be played in huge spirts...
     // seems unrealistic.
     tokio::time::sleep(Duration::from_millis(offset as u64)).await;
+    let mut stats: WinnerStats = WinnerStats {
+        ok: 0,
+        xvii: 0,
+        xx: 0,
+        xxii: 0,
+        xxiii: 0,
+        xxv: 0,
+        xxx: 0,
+        xl: 0,
+    };
     while config.lock().await.count > 0 {
         {
             let mut config = config.lock().await;
@@ -252,6 +274,7 @@ async fn play(
                 if let Some(msg) = msg.msg {
                     if msg.starts_with("winner") {
                         println!("{}", msg);
+                        update_stats(&mut stats, msg)
                     }
                 }
             } else {
@@ -267,7 +290,30 @@ async fn play(
         }
     }
 
-    return Ok(());
+    return Ok(stats);
+}
+
+fn update_stats(stats: &mut WinnerStats, msg: String) {
+    let parts: Vec<&str> = msg.split("___").collect();
+    let values: Vec<usize> = parts[1]
+        .split(',')
+        .map(|v| match v.parse::<usize>() {
+            Ok(n) => n,
+            Err(_) => {
+                println!("FAILED TO PARSE {}", v);
+                0
+            }
+        })
+        .collect();
+
+    stats.ok += values[0];
+    stats.xvii += values[1];
+    stats.xx += values[2];
+    stats.xxii += values[3];
+    stats.xxiii += values[4];
+    stats.xxv += values[5];
+    stats.xxx += values[6];
+    stats.xxv += values[7];
 }
 
 fn get_config() -> Arc<Mutex<ServerConfig>> {
@@ -311,12 +357,63 @@ async fn main() -> Result<(), BoomerError> {
 
     // TODO: don't care... should I?
     pin_mut!(fire_loop_await);
+    let mut win_stats: WinnerStats = WinnerStats {
+        ok: 0,
+        xvii: 0,
+        xx: 0,
+        xxii: 0,
+        xxiii: 0,
+        xxv: 0,
+        xxx: 0,
+        xl: 0,
+    };
     match futures::future::select(join_all(awaits), fire_loop_await).await {
-        _ => {}
+        result => match result {
+            futures::future::Either::Left((res, _)) => {
+                for item in res {
+                    match item {
+                        Ok(stats) => {
+                            win_stats.ok += stats.ok;
+                            win_stats.xvii += stats.xvii;
+                            win_stats.xx += stats.xx;
+                            win_stats.xxii += stats.xxii;
+                            win_stats.xxiii += stats.xxiii;
+                            win_stats.xxv += stats.xxv;
+                            win_stats.xxx += stats.xxx;
+                            win_stats.xl += stats.xl;
+                        }
+                        Err(e) => println!("Operation failed {:?}", e),
+                    }
+                }
+            }
+            futures::future::Either::Right(_) => todo!(),
+        },
     }
     println!("done.");
 
+    print_stats(&win_stats);
+
     return Ok(());
+}
+
+fn print_stats(stats: &WinnerStats) {
+    let total = stats.ok
+        + stats.xvii
+        + stats.xx
+        + stats.xxii
+        + stats.xxiii
+        + stats.xxv
+        + stats.xxx
+        + stats.xl;
+
+    println!("ok\t{}%", (stats.ok as f64) / (total as f64) * 100.0);
+    println!("xvii\t{}%", (stats.xvii as f64) / (total as f64) * 100.0);
+    println!("xx\t{}%", (stats.xx as f64) / (total as f64) * 100.0);
+    println!("xxii\t{}%", (stats.xxii as f64) / (total as f64) * 100.0);
+    println!("xxiii\t{}%", (stats.xxiii as f64) / (total as f64) * 100.0);
+    println!("xxv\t{}%", (stats.xxv as f64) / (total as f64) * 100.0);
+    println!("xxx\t{}%", (stats.xxx as f64) / (total as f64) * 100.0);
+    println!("xl\t{}%", (stats.xl as f64) / (total as f64) * 100.0);
 }
 
 fn create_maps() -> [HashMap<usize, HashableWriter>; WRITE_COUNT] {

@@ -49,7 +49,7 @@ pub async fn handle_messages(mut incoming: MessageStream, listeners: Listener) {
                 for (_k, tx) in listener.iter() {
                     match tx.send(msg.clone()).await {
                         Ok(_) => (),
-                        Err(_) => todo!(),
+                        Err(_) => println!("Failed to send {:?}", msg),
                     }
                 }
             } else {
