@@ -88,14 +88,14 @@ export default class GameWorldImpl {
     }
 
     update(delta: number): void {
-        if (++this.count === 300) {
-            if (this.p1Bullets.length === 0 && this.p2Bullets.length === 0) {
-                // nothing has been fired... what?
-                this.stop();
-                this.winner = this.s1;
-                console.error("stopping game due to no bullets fired");
-            }
-        }
+        // if (++this.count === 300) {
+        //     if (this.p1Bullets.length === 0 && this.p2Bullets.length === 0) {
+        //         // nothing has been fired... what?
+        //         this.stop();
+        //         this.winner = this.s1;
+        //         console.error("stopping game due to no bullets fired");
+        //     }
+        // }
 
         applyVelocityAll(this.p1Bullets, delta);
         applyVelocityAll(this.p2Bullets, delta);

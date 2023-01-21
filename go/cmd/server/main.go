@@ -9,7 +9,7 @@ import (
 	"github.com/ThePrimeagen/tyrone-biggums/pkg/server"
 )
 
-var addr = flag.String("addr", "127.0.0.1:42069", "http service address")
+var addr = flag.String("addr", "0.0.0.0:42069", "http service address")
 
 func main() {
 	flag.Parse()
